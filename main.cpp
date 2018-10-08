@@ -128,7 +128,7 @@ int main(){
     glCompileShader(vertex_shader);
     
     unsigned int fragment_shader;
-    const char* fragment_shader_source = load_shader("/FramgentShader.fs").c_str();
+    const char* fragment_shader_source = load_shader("FramgentShader.fs").c_str();
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
     glCompileShader(fragment_shader);
