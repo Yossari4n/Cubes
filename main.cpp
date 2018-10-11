@@ -24,7 +24,7 @@ const float SIN_MULTIPLIER = 2.0f;
 // callbacks functions
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-std::string load_shader(const char* file_path);
+void load_shader(const char* file_path, std::string& source);
 
 int main(){
     glfwInit();
@@ -122,15 +122,19 @@ int main(){
     
     // shaders
     unsigned int vertex_shader;
-    const char* vertex_shader_source = load_shader("VertexShader.vs").c_str();
+    std::string vertex_shader_source;
+    load_shader("/Users/jakubstokowski/Desktop/openGL/CubeWave/CubeWave/VertexShader.vs", vertex_shader_source);
+    const char* vertex_shader_ptr = vertex_shader_source.c_str();
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
+    glShaderSource(vertex_shader, 1, &vertex_shader_ptr, nullptr);
     glCompileShader(vertex_shader);
     
     unsigned int fragment_shader;
-    const char* fragment_shader_source = load_shader("FramgentShader.fs").c_str();
+    std::string fragment_shader_source;
+    load_shader("/Users/jakubstokowski/Desktop/openGL/CubeWave/CubeWave/FramgentShader.fs", fragment_shader_source);
+    const char* fragment_shader_ptr = fragment_shader_source.c_str();
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
+    glShaderSource(fragment_shader, 1, &fragment_shader_ptr, nullptr);
     glCompileShader(fragment_shader);
     
     // shader program
@@ -200,8 +204,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-std::string load_shader(const char* file_path) {
-    std::string source = "";
+void load_shader(const char* file_path, std::string& source) {
+    source = "";
     std::ifstream shader_file;
     
     shader_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -218,6 +222,4 @@ std::string load_shader(const char* file_path) {
     } catch (const std::ifstream::failure& exc) {
         std::cout << exc.what() << '\n';
     }
-    
-    return source;
 }
