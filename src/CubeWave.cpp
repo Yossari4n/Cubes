@@ -21,10 +21,8 @@ const float MIN_CUBE_HEIGHT = 5.0f;
 const float CUBE_HEIGHT_MULTIPLIER = 3.0f;
 const float SIN_MULTIPLIER = 2.0f;
 
-// callbacks functions
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-
-void load_shader(const char* file_path, std::string& source);
+unsigned int create_shader(const char* file_path, GLenum shader_type);
 
 int main(){
     glfwInit();
@@ -121,21 +119,8 @@ int main(){
     glBindVertexArray(0);
     
     // shaders
-    unsigned int vertex_shader;
-    std::string vertex_shader_source;
-    load_shader("/Users/jakubstokowski/Desktop/openGL/CubeWave/CubeWave/VertexShader.vs", vertex_shader_source);
-    const char* vertex_shader_ptr = vertex_shader_source.c_str();
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_ptr, nullptr);
-    glCompileShader(vertex_shader);
-    
-    unsigned int fragment_shader;
-    std::string fragment_shader_source;
-    load_shader("/Users/jakubstokowski/Desktop/openGL/CubeWave/CubeWave/FramgentShader.fs", fragment_shader_source);
-    const char* fragment_shader_ptr = fragment_shader_source.c_str();
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_ptr, nullptr);
-    glCompileShader(fragment_shader);
+    unsigned int vertex_shader = create_shader("VertexShader.vs", GL_VERTEX_SHADER);
+    unsigned int fragment_shader = create_shader("FramgentShader.fs", GL_FRAGMENT_SHADER);
     
     // shader program
     unsigned int shader_program;
@@ -204,22 +189,36 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void load_shader(const char* file_path, std::string& source) {
-    source = "";
-    std::ifstream shader_file;
+unsigned int create_shader(const char* file_path, GLenum shader_type) {
+    std::string shader_code;
+    std::fstream shader_file;
     
     shader_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     
     try {
         shader_file.open(file_path);
-        
         std::stringstream shader_stream;
         shader_stream << shader_file.rdbuf();
-        
         shader_file.close();
-
-        source = shader_stream.str();
-    } catch (const std::ifstream::failure& exc) {
-        std::cout << exc.what() << '\n';
+        
+        shader_code = shader_stream.str();
+    } catch(const std::ifstream::failure &e) {
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ\n";
     }
+    
+    unsigned int shader = glCreateShader(shader_type);
+    const char *shader_code_ptr = shader_code.c_str();
+    glShaderSource(shader, 1, &shader_code_ptr, nullptr);
+    glCompileShader(shader);
+    
+    // check compile errors
+    GLint success;
+    GLchar info_log[1024];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 1024, NULL, info_log);
+        std::cout << "ERROR::SHADER_COMPILATION_ERROR\n" << info_log << '\n';
+    }
+    
+    return shader;
 }
