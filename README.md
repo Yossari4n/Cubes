@@ -1,4 +1,5 @@
-Simple visualization inspired by Dave Whyte, fully implemented in C++ with OpenGL
+Cubes! is set of simple visualizations implemented in C++ and moder OpenGL with as minimalistic code as possible.
 
 
+1. CubeWave inspired by Dave Whyte
 ![](CubeWave.gif)

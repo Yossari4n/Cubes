@@ -1,2 +1,18 @@
+# OS X
+*.DS_Store
+
+# XCode
 *.xcodeproj
-glad.c
+
+# Visual Studio
+Debug
+Release
+*.vcxproj*
+
+# External Libraries
+*.dll
+*.exp
+*.lib
+
+# Dependencies
+dependencies/
