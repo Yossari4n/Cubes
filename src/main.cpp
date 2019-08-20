@@ -1,10 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include <iostream>
 #include <array>
 
@@ -12,6 +8,7 @@
  * Callbacks *
  *************/
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    (void*)window;
     glViewport(0, 0, width, height);
 }
 
@@ -110,6 +107,24 @@ mat4 LookAt(vec3 pos, vec3 target, vec3 up) {
     };
 
     return Mul(translation, rotation);
+}
+
+mat4 Translate(mat4 matrix, vec3 vec) {
+    return {
+        matrix[0][0],          matrix[0][1],          matrix[0][2],          matrix[0][3],
+        matrix[1][0],          matrix[1][1],          matrix[1][2],          matrix[1][3],
+        matrix[2][0],          matrix[2][1],          matrix[2][2],          matrix[2][3],
+        matrix[3][0] + vec[0], matrix[3][1] + vec[1], matrix[3][2] + vec[2], matrix[3][3]
+    };
+}
+
+mat4 Scale(mat4 matrix, vec3 vec) {
+    return {
+        matrix[0][0] * vec[0], matrix[0][1],          matrix[0][2],          matrix[0][3],
+        matrix[1][0],          matrix[1][1] * vec[1], matrix[1][2],          matrix[1][3],
+        matrix[2][0],          matrix[2][1],          matrix[2][2] * vec[2], matrix[2][3],
+        matrix[3][0],          matrix[3][1],          matrix[3][2],          matrix[3][3]
+    };
 }
 
 
@@ -295,11 +310,16 @@ void CubeWave(Window* window, GLuint shader_program) {
                 float distance_factor = static_cast<float>(sqrt(pow(i, 2) + pow(j, 2))) * 0.9f;
                 float height = CUBE_HEIGHT_MULTIPLIER * sin(SIN_MULTIPLIER * time + distance_factor) + MIN_CUBE_HEIGHT;
 
-                glm::mat4 model(1.0f);
-                model = glm::translate(model, glm::vec3(i, 0.0f, j));
-                model = glm::scale(model, glm::vec3(1.0f, height, 1.0f));
+                mat4 model {
+                    1.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 1.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f
+                };
+                model = Translate(model, { static_cast<float>(i), 0.0f, static_cast<float>(j) });
+                model = Scale(model, { 1.0f, height, 1.0f });
                 GLint model_loc = glGetUniformLocation(shader_program, "model");
-                glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
+                glUniformMatrix4fv(model_loc, 1, GL_FALSE, &model[0][0]);
 
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
