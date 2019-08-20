@@ -1,8 +1,13 @@
+#pragma warning(push, 0)
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#pragma warning(pop)
 
 #include <iostream>
 #include <array>
+
+constexpr float PI = 3.1415926535897931f;
+
 
 /*************
  * Callbacks *
@@ -23,14 +28,14 @@ struct Window {
 };
 
 GLuint CreateShader(const char* source, GLenum shader_type) {
-    GLuint shader = glCreateShader(shader_type);
+    const GLuint shader = glCreateShader(shader_type);
     glShaderSource(shader, 1, &source, '\0');
     glCompileShader(shader);
     return shader;
 }
 
 GLuint CreateProgram(GLuint vertex_shader, GLuint fragment_shader) {
-    GLuint program = glCreateProgram();
+    const GLuint program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
@@ -45,7 +50,15 @@ using vec3 = std::array<float, 3>;
 using vec4 = std::array<float, 4>;
 using mat4 = std::array<vec4, 4>;
 
-vec3 Normalize(vec3 vec) {
+constexpr float ToRadians(float degrees) {
+    return degrees * PI / 180.0f;
+}
+
+constexpr float ToDegrees(float radians) {
+    return radians * 180.0f / PI;
+}
+
+vec3 Normalize(const vec3& vec) {
     float mag = static_cast<float>(sqrt(pow(vec[0], 2) + pow(vec[1], 2) + pow(vec[2], 2)));
 
     if (mag != 1.0f) { // TODO fix naive test
@@ -55,15 +68,15 @@ vec3 Normalize(vec3 vec) {
     }
 }
 
-vec3 Cross(vec3 first, vec3 second) {
-    return { 
+constexpr vec3 Cross(const vec3& first, const vec3& second) {
+    return {
         first[1] * second[2] - first[2] * second[1],
         first[2] * second[0] - first[0] * second[2],
         first[0] * second[1] - first[1] * second[0]
     };
 }
 
-mat4 Mul(mat4 first, mat4 second) {
+constexpr mat4 Mul(const mat4& first, const mat4& second) {
     mat4 result{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
     for (int i = 0; i < 4; i++) {
@@ -77,9 +90,11 @@ mat4 Mul(mat4 first, mat4 second) {
     return result;
 }
 
-// TODO change top/right for more glm version
-mat4 Perspective(float top, float right, float near, float far) {
-    return { 
+mat4 Perspective(float fov, float aspect, float near, float far) {
+    const float top = tan(ToRadians(fov) / 2.0f) * near;
+    const float right = top * aspect;
+
+    return {
         near / right, 0.0f,       0.0f,                           0.0f,
         0.0f,         near / top, 0.0f,                           0.0f,
         0.0f,         0.0f,       -(far + near) / (far - near),   -1.0f,
@@ -87,10 +102,10 @@ mat4 Perspective(float top, float right, float near, float far) {
     };
 }
 
-mat4 LookAt(vec3 pos, vec3 target, vec3 up) {
-    vec3 z_axis = Normalize({ pos[0] - target[0], pos[1] - target[1], pos[2] - target[2] });
-    vec3 x_axis = Normalize(Cross(Normalize(up), z_axis));
-    vec3 y_axis = Cross(z_axis, x_axis);
+mat4 LookAt(const vec3& pos, const vec3& target, const vec3& up) {
+    const vec3 z_axis = Normalize({ pos[0] - target[0], pos[1] - target[1], pos[2] - target[2] });
+    const vec3 x_axis = Normalize(Cross(Normalize(up), z_axis));
+    const vec3 y_axis = Cross(z_axis, x_axis);
 
     mat4 translation {
         1.0f,    0.0f,    0.0f,    0.0f,
@@ -109,7 +124,7 @@ mat4 LookAt(vec3 pos, vec3 target, vec3 up) {
     return Mul(translation, rotation);
 }
 
-mat4 Translate(mat4 matrix, vec3 vec) {
+constexpr mat4 Translate(const mat4& matrix, const vec3& vec) {
     return {
         matrix[0][0],          matrix[0][1],          matrix[0][2],          matrix[0][3],
         matrix[1][0],          matrix[1][1],          matrix[1][2],          matrix[1][3],
@@ -118,7 +133,7 @@ mat4 Translate(mat4 matrix, vec3 vec) {
     };
 }
 
-mat4 Scale(mat4 matrix, vec3 vec) {
+constexpr mat4 Scale(const mat4& matrix, const vec3& vec) {
     return {
         matrix[0][0] * vec[0], matrix[0][1],          matrix[0][2],          matrix[0][3],
         matrix[1][0],          matrix[1][1] * vec[1], matrix[1][2],          matrix[1][3],
@@ -281,10 +296,10 @@ void CubeWave(Window* window, GLuint shader_program) {
     glBindVertexArray(0);
 
     // Camera
-    mat4 projection = Perspective(0.041f, 0.056f, 0.1f, 100.0f);
-    mat4 view = LookAt({ 20.0f, 22.5f, 20.0f }, 
-                       { 0.0f, 0.0f, 0.0f },
-                       { 0.0f, 1.0f, 0.0f });
+    const mat4 projection = Perspective(45.0f, static_cast<float>(window->width / window->height), 0.1f, 100.0f);
+    const mat4 view = LookAt({ 20.0f, 22.5f, 20.0f }, 
+                             { 0.0f, 0.0f, 0.0f },
+                             { 0.0f, 1.0f, 0.0f });
 
     mat4 pv = Mul(view, projection);
     GLint pv_loc = glGetUniformLocation(shader_program, "pv");
@@ -321,7 +336,7 @@ void CubeWave(Window* window, GLuint shader_program) {
                 GLint model_loc = glGetUniformLocation(shader_program, "model");
                 glUniformMatrix4fv(model_loc, 1, GL_FALSE, &model[0][0]);
 
-                glDrawArrays(GL_TRIANGLES, 0, 36);
+                glDrawArrays(GL_TRIANGLES, 0, sizeof(cube) / sizeof(cube[0]));
             }
         }
 
