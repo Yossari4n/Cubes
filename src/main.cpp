@@ -6,7 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
-
+#include <array>
 
 /*************
  * Callbacks *
@@ -41,6 +41,78 @@ GLuint CreateProgram(GLuint vertex_shader, GLuint fragment_shader) {
 }
 
 
+/******************************
+ * Math utilities and helpers *
+ ******************************/
+using vec3 = std::array<float, 3>;
+using vec4 = std::array<float, 4>;
+using mat4 = std::array<vec4, 4>;
+
+vec3 Normalize(vec3 vec) {
+    float mag = static_cast<float>(sqrt(pow(vec[0], 2) + pow(vec[1], 2) + pow(vec[2], 2)));
+
+    if (mag != 1.0f) { // TODO fix naive test
+        return { vec[0] / mag, vec[1] / mag, vec[2] / mag };
+    }  else {
+        return vec;
+    }
+}
+
+vec3 Cross(vec3 first, vec3 second) {
+    return { 
+        first[1] * second[2] - first[2] * second[1],
+        first[2] * second[0] - first[0] * second[2],
+        first[0] * second[1] - first[1] * second[0]
+    };
+}
+
+mat4 Mul(mat4 first, mat4 second) {
+    mat4 result{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                result[i][j] += first[i][k] * second[k][j];
+            }
+        }
+    }
+
+    return result;
+}
+
+// TODO change top/right for more glm version
+mat4 Perspective(float top, float right, float near, float far) {
+    return { 
+        near / right, 0.0f,       0.0f,                           0.0f,
+        0.0f,         near / top, 0.0f,                           0.0f,
+        0.0f,         0.0f,       -(far + near) / (far - near),   -1.0f,
+        0.0f,         0.0f,       -2 * far * near / (far - near), 0.0f
+    };
+}
+
+mat4 LookAt(vec3 pos, vec3 target, vec3 up) {
+    vec3 z_axis = Normalize({ pos[0] - target[0], pos[1] - target[1], pos[2] - target[2] });
+    vec3 x_axis = Normalize(Cross(Normalize(up), z_axis));
+    vec3 y_axis = Cross(z_axis, x_axis);
+
+    mat4 translation {
+        1.0f,    0.0f,    0.0f,    0.0f,
+        0.0f,    1.0f,    0.0f,    0.0f,
+        0.0f,    0.0f,    1.0f,    0.0f,
+        -pos[0], -pos[1], -pos[2], 1.0f
+    };
+
+    mat4 rotation {
+        x_axis[0], y_axis[0], z_axis[0], 0.0f,
+        x_axis[1], y_axis[1], z_axis[1], 0.0f,
+        x_axis[2], y_axis[2], z_axis[2], 0.0f,
+        0.0f,      0.0f,      0.0f,      1.0f
+    };
+
+    return Mul(translation, rotation);
+}
+
+
 /******************************************
  * Sources of shaders used in the program *
  ******************************************/
@@ -49,12 +121,11 @@ const char* VertexShaderSource =
 "layout(location = 0) in vec3 aPos;\n"
 "layout(location = 1) in vec3 aColor;\n"
 "uniform mat4 model;\n"
-"uniform mat4 view;\n"
-"uniform mat4 projection;\n"
+"uniform mat4 pv;\n"
 "out vec4 VertexColor;\n"
 "void main() {\n"
 "    VertexColor = vec4(aColor, 1.0);\n"
-"    gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
+"    gl_Position = pv * model * vec4(aPos, 1.0);\n"
 "}\n\0";
 
 const char* FragmentShaderSource =
@@ -195,20 +266,17 @@ void CubeWave(Window* window, GLuint shader_program) {
     glBindVertexArray(0);
 
     // Camera
-    glm::mat4 view(1.0f);
-    view = glm::lookAt(glm::vec3(20.0f, 22.5f, 20.0f),
-                       glm::vec3(0.0f, 0.0f, 0.0f),
-                       glm::vec3(0.0f, 1.0f, 0.0f));
-    int view_loc = glGetUniformLocation(shader_program, "view");
+    mat4 projection = Perspective(0.041f, 0.056f, 0.1f, 100.0f);
+    mat4 view = LookAt({ 20.0f, 22.5f, 20.0f }, 
+                       { 0.0f, 0.0f, 0.0f },
+                       { 0.0f, 1.0f, 0.0f });
 
-    glm::mat4 projection(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)window->width / (float)window->height, 0.1f, 100.0f);
-    GLint projection_loc = glGetUniformLocation(shader_program, "projection");
+    mat4 pv = Mul(view, projection);
+    GLint pv_loc = glGetUniformLocation(shader_program, "pv");
 
     // Load uniforms
     glUseProgram(shader_program);
-    glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(pv_loc, 1, GL_FALSE, &pv[0][0]);
 
     // OpenGL settings
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -220,10 +288,12 @@ void CubeWave(Window* window, GLuint shader_program) {
 
         glUseProgram(shader_program);
         glBindVertexArray(VAO);
+
+        float time = static_cast<float>(glfwGetTime());
         for (int i = -ROWS / 2; i < ROWS / 2; ++i) {
             for (int j = -COLUMNS / 2; j < COLUMNS / 2; ++j) {
                 float distance_factor = static_cast<float>(sqrt(pow(i, 2) + pow(j, 2))) * 0.9f;
-                float height = CUBE_HEIGHT_MULTIPLIER * static_cast<float>(sin(SIN_MULTIPLIER * glfwGetTime() + distance_factor)) + MIN_CUBE_HEIGHT;
+                float height = CUBE_HEIGHT_MULTIPLIER * sin(SIN_MULTIPLIER * time + distance_factor) + MIN_CUBE_HEIGHT;
 
                 glm::mat4 model(1.0f);
                 model = glm::translate(model, glm::vec3(i, 0.0f, j));
