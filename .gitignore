@@ -5,14 +5,12 @@
 *.xcodeproj
 
 # Visual Studio
-Debug
-Release
-*.vcxproj*
+*.sln
+Debug/
+Release/
+.vs/
 
 # External Libraries
 *.dll
 *.exp
 *.lib
-
-# Dependencies
-dependencies/

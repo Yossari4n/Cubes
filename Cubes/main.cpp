@@ -1,13 +1,10 @@
 #pragma warning(push, 0)
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
+#include <glfw/glfw3.h>
 
 #include <iostream>
 #include <array>
 #pragma warning(pop)
-
-constexpr float PI = 3.1415926535897931f;
 
 /*************
  * Callbacks *
@@ -29,7 +26,7 @@ struct Window {
 
 GLuint CreateShader(const char* source, GLenum shader_type) {
     const GLuint shader = glCreateShader(shader_type);
-    glShaderSource(shader, 1, &source, '\0');
+    glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
     return shader;
 }
@@ -46,9 +43,15 @@ GLuint CreateProgram(GLuint vertex_shader, GLuint fragment_shader) {
 /******************************
  * Math utilities and helpers *
  ******************************/
+constexpr float PI = 3.1415926535897931f;
+
 using vec3 = std::array<float, 3>;
 using vec4 = std::array<float, 4>;
 using mat4 = std::array<vec4, 4>;
+
+bool AlmostEqual(float a, float b) {
+    return std::abs(a - b) < std::numeric_limits<float>::epsilon();
+}
 
 constexpr float ToRadians(float degrees) {
     return degrees * PI / 180.0f;
@@ -61,7 +64,7 @@ constexpr float ToDegrees(float radians) {
 vec3 Normalize(const vec3& vec) {
     float mag = static_cast<float>(sqrt(pow(vec[0], 2) + pow(vec[1], 2) + pow(vec[2], 2)));
 
-    if (mag != 1.0f) { // TODO fix naive test
+    if (!AlmostEqual(mag, 1.0f)) {
         return { vec[0] / mag, vec[1] / mag, vec[2] / mag };
     } else {
         return vec;
