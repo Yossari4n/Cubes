@@ -3,3 +3,6 @@ Cubes! is set of simple visualizations implemented in C++ and moder OpenGL with 
 
 1. CubeWave inspired by Dave Whyte
 ![](CubeWave.gif)
+
+2. WIP Penrose stairs
+![](PenroseStairs.png)

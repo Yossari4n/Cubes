@@ -1,23 +1,19 @@
 #pragma warning(push, 0)
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
+#pragma warning(pop)
 
 #include <iostream>
 #include <array>
-#pragma warning(pop)
 
-/*************
- * Callbacks *
- *************/
+/********************************
+ * OpenGL utilities and helpers *
+ ********************************/
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
     (void*)window;
     glViewport(0, 0, width, height);
 }
 
-
-/********************************
- * OpenGL utilities and helpers *
- ********************************/
 struct Window {
     GLFWwindow* const handler;
     const int width;
@@ -173,6 +169,8 @@ const char* FragmentShaderSource =
 /*************************
  * Constants and globals *
  *************************/
+constexpr int WindowWidth = 800;
+constexpr int WindowHeight = 600;
 constexpr GLfloat CubeVertices[] = {
     // back
     -0.5f, -0.5f, -0.5f,
@@ -228,6 +226,7 @@ constexpr GLfloat CubeVertices[] = {
  * Visualizations forward declarations *
  ***************************************/
 void CubeWave(const Window* window, GLuint shader_program);
+void PenroseStairs(const Window* window, GLuint shader_program);
 
 
 int main() {
@@ -242,7 +241,7 @@ int main() {
 #endif
 
     // Create window
-    const Window window = { glfwCreateWindow(800, 600, "Cubes!", nullptr, nullptr), 800, 600 };
+    const Window window = { glfwCreateWindow(WindowWidth, WindowHeight, "Cubes!", nullptr, nullptr), WindowWidth, WindowHeight };
     if (!window.handler) {
         std::cout << "Failed to initialize window\n";
         glfwTerminate();
@@ -267,8 +266,19 @@ int main() {
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    //
-    CubeWave(&window, shader_program);
+    // Different scenes
+    switch(1) {
+        case 0:
+            CubeWave(&window, shader_program);
+            break;
+
+        case 1:
+            PenroseStairs(&window, shader_program);
+            break;
+
+        default:
+            break;
+    }
 
     // End of application
     glfwTerminate();
@@ -357,9 +367,11 @@ void CubeWave(const Window* window, GLuint shader_program) {
 
     // Camera
     const mat4 projection = Perspective(45.0f, static_cast<float>(window->width / window->height), 0.1f, 100.0f);
-    const mat4 view = LookAt({ 20.0f, 22.5f, 20.0f },
-                             { 0.0f, 0.0f, 0.0f },
-                             { 0.0f, 1.0f, 0.0f });
+    const mat4 view = LookAt(
+        { 20.0f, 22.5f, 20.0f },
+        { 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f }
+    );
 
     const mat4 pv = Mul(view, projection);
     const GLint pv_loc = glGetUniformLocation(shader_program, "pv");
@@ -398,6 +410,149 @@ void CubeWave(const Window* window, GLuint shader_program) {
 
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
+        }
+
+        glfwSwapBuffers(window->handler);
+        glfwPollEvents();
+    }
+
+    // Free memory
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vertex_buffer);
+    glDeleteBuffers(1, &color_buffer);
+}
+
+
+void PenroseStairs(const Window* window, GLuint shader_program) {
+    constexpr GLfloat colors[] = {
+        // back
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+
+        // front
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+
+        // left
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+
+        // right
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+        0.37f, 0.0f,  0.73f,
+
+        // down
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+
+        // top
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f,
+        0.63f, 0.61f,  0.91f
+    };
+
+    // Buffer objects
+    GLuint vertex_buffer, color_buffer, vao;
+    glGenBuffers(1, &vertex_buffer);
+    glGenBuffers(1, &color_buffer);
+    glGenVertexArrays(1, &vao);
+
+    glBindVertexArray(vao);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CubeVertices), CubeVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 0, (void*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 0, (void*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Camera
+    const mat4 projection = Perspective(45.0f, static_cast<float>(window->width / window->height), 0.1f, 100.0f);
+    const mat4 view = LookAt(
+        { 10.9f, 7.8f, 4.2f },
+        { 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f }
+    );
+
+    const mat4 pv = Mul(view, projection);
+
+    // Scene
+    const vec3 positions[] = {
+        {2.0f, 0.0f, 0.0f},
+        {2.0f, 0.0f, 1.0f},
+        {2.0f, 0.0f, 2.0f},
+        {1.0f, 0.0f, 2.0f},
+        {0.0f, 0.0f, 2.0f},
+        {-1.0f, 0.0f, 2.0f},
+        {-2.0f, 0.0f, 2.0f},
+        {-2.0f, 0.0f, 1.0f},
+        {-2.0f, 0.0f, 0.0f},
+        {-2.0f, 0.0f, -1.0f},
+        {-1.0f, 0.0f, -1.0f},
+    };
+    const float height_modifier = -0.1f;
+
+    // Load uniforms
+    glUseProgram(shader_program);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program, "pv"), 1, GL_FALSE, &pv[0][0]);
+
+    // OpenGL settings
+    glClearColor(0.87f, 0.95f, 1.0f, 0.9f);
+    glEnable(GL_DEPTH_TEST);
+
+    // Render loop
+    while (!glfwWindowShouldClose(window->handler)) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(shader_program);
+        glBindVertexArray(vao);
+
+        for (int i = 0; i < sizeof(positions) / sizeof(positions[0]); i++) {
+            vec3 position = positions[i];
+            position[1] = height_modifier * i / 2.0f;
+
+            vec3 scale{1.0f, 5.0f + height_modifier * i, 1.0f};
+
+            mat4 model{
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
+            model = Translate(model, position);
+            model = Scale(model, scale);
+
+            glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
         glfwSwapBuffers(window->handler);
